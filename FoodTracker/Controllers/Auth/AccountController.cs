@@ -8,11 +8,12 @@ namespace FoodTracker.Controllers.Auth
     using FoodTracker.Auth.DTO;
     using FoodTracker.Business.Managers.Interfaces;
     using FoodTracker.Core.Entities;
+    using Microsoft.AspNetCore.Authentication.JwtBearer;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.IdentityModel.Tokens;
 
-    [Route("account")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme), Route("account")]
     public class AccountController : Controller
     {
         #region Fields
@@ -32,7 +33,7 @@ namespace FoodTracker.Controllers.Auth
 
         #region Actions
 
-        [Authorize, HttpPost, Route("token")]
+        [HttpPost, Route("token")]
         public async Task<IActionResult> Login([FromBody]LoginDTO loginModel)
         {
             var user = await UserManager.GetByCredentialsAsync(loginModel.Email, loginModel.Password);

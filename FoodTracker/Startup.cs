@@ -11,6 +11,7 @@ namespace FoodTracker
     using FoodTracker.Data.UnitOfWork.Implementations;
     using FoodTracker.Data.UnitOfWork.Interfaces;
     using Microsoft.AspNetCore.Authentication.Cookies;
+    using Microsoft.AspNetCore.Authentication.JwtBearer;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.Configuration;
@@ -40,10 +41,15 @@ namespace FoodTracker
 
             #region Authentication
 
-            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddJwtBearer(options => 
+            services.AddAuthentication(ao =>
+            {
+                ao.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                ao.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+                .AddJwtBearer(options =>
                 {
                     options.RequireHttpsMetadata = false;
+                    options.SaveToken = true;
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,
@@ -66,7 +72,7 @@ namespace FoodTracker
             var assembly = typeof(BaseCrudManager<>).Assembly;
             var assemblyTypes = assembly.DefinedTypes;
             var managerInterfaces = assemblyTypes.Where(t => t.IsInterface && t.ImplementedInterfaces.Any(ii => ii.GetGenericTypeDefinition() == typeof(ICrudManager<>)));
-            foreach(var managerInterface in managerInterfaces)
+            foreach (var managerInterface in managerInterfaces)
             {
                 var managerImplementationType = assemblyTypes.FirstOrDefault(t => t.ImplementedInterfaces.Any(ii => ii == managerInterface));
                 services.Add(new ServiceDescriptor(managerInterface, managerImplementationType, ServiceLifetime.Transient));
