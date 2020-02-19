@@ -2,6 +2,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FoodTracker.Core\FoodTracker.Core.csproj" />
+    <ProjectReference Include="..\FoodTracker.Business\FoodTracker.Business.csproj" />
+    <ProjectReference Include="..\FoodTracker.Data\FoodTracker.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.1" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="5.6.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="5.6.0" />
   </ItemGroup>
 
   <PropertyGroup>

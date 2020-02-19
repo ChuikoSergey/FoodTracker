@@ -1,18 +1,23 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-
 namespace FoodTracker
 {
+    using System.Linq;
+    using System.Reflection;
+    using FoodTracker.Auth;
+    using FoodTracker.Business.Managers.Implementations.Base;
+    using FoodTracker.Business.Managers.Interfaces.Base;
+    using FoodTracker.Data.Context;
+    using FoodTracker.Data.Repository.Implementations;
+    using FoodTracker.Data.Repository.Interfaces;
+    using FoodTracker.Data.UnitOfWork.Implementations;
+    using FoodTracker.Data.UnitOfWork.Interfaces;
+    using Microsoft.AspNetCore.Authentication.Cookies;
+    using Microsoft.AspNetCore.Builder;
+    using Microsoft.AspNetCore.Hosting;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
+    using Microsoft.IdentityModel.Tokens;
+
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -25,6 +30,52 @@ namespace FoodTracker
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            #region Database
+
+            services.AddDbContext<DataContext>();
+            services.Add(new ServiceDescriptor(typeof(IRepository<>), typeof(Repository<>), ServiceLifetime.Transient));
+            services.Add(new ServiceDescriptor(typeof(IUnitOfWork), typeof(UnitOfWork), ServiceLifetime.Transient));
+
+            #endregion
+
+            #region Authentication
+
+            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddJwtBearer(options => 
+                {
+                    options.RequireHttpsMetadata = false;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = AuthOptions.Issuer,
+
+                        ValidateAudience = true,
+                        ValidAudience = AuthOptions.Audience,
+
+                        ValidateLifetime = true,
+
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = AuthOptions.Key
+                    };
+                });
+
+            #endregion
+
+            #region Managers
+
+            var assembly = typeof(BaseCrudManager<>).Assembly;
+            var assemblyTypes = assembly.DefinedTypes;
+            var managerInterfaces = assemblyTypes.Where(t => t.IsInterface && t.ImplementedInterfaces.Any(ii => ii.GetGenericTypeDefinition() == typeof(ICrudManager<>)));
+            foreach(var managerInterface in managerInterfaces)
+            {
+                var managerImplementationType = assemblyTypes.FirstOrDefault(t => t.ImplementedInterfaces.Any(ii => ii == managerInterface));
+                services.Add(new ServiceDescriptor(managerInterface, managerImplementationType, ServiceLifetime.Transient));
+            }
+
+            #endregion
+
+            services.AddRouting();
+            services.AddAuthorization();
             services.AddControllers();
         }
 
@@ -36,10 +87,11 @@ namespace FoodTracker
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseHttpsRedirection();
+            // app.UseHttpsRedirection();
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
